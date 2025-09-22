@@ -1,7 +1,7 @@
 /**
  * Till Counter & Float Manager
  * JavaScript functionality for real-time calculations and float management
- * Updated to use a backend API for data persistence
+ * Updated to use a backend API for data persistence and date selection
  */
 
 class TillCounter {
@@ -11,9 +11,22 @@ class TillCounter {
         this.floatTotal = 0;
         this.takings = 0;
         this.expectedTakings = 0;
-        
+
         this.initializeEventListeners();
+        this.setInitialDate();
         this.loadSavedData();
+    }
+
+    /**
+     * Set the date input to today's date by default.
+     */
+    setInitialDate() {
+        const dateInput = document.getElementById('recordDate');
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
     }
 
     /**
@@ -45,143 +58,32 @@ class TillCounter {
             this.saveData(); // Save data on every input change
         });
 
+        // Date input listener
+        const dateInput = document.getElementById('recordDate');
+        dateInput.addEventListener('change', () => {
+            // Reload data for the new date, or reset if no data found
+            this.loadSavedData(dateInput.value);
+        });
+
         // Button listeners
         document.getElementById('resetBtn').addEventListener('click', () => this.resetAll());
         document.getElementById('suggestFloatBtn').addEventListener('click', () => this.suggestFloat());
         document.getElementById('clearFloatBtn').addEventListener('click', () => this.clearFloat());
-        
-        // This is a placeholder for future history functionality
-        const historyBtn = document.getElementById('historyBtn');
-        if (historyBtn) {
-            historyBtn.addEventListener('click', () => this.loadHistory());
-        }
-
-        // Add event listener for the new "Add Record" form
-        document.getElementById('addRecordForm').addEventListener('submit', (event) => this.savePastRecord(event));
     }
 
-/**
-     * Calculate total cash for the add record form
-     */
-    calculateAddRecordTotal() {
-        let total = 0;
-        const inputs = document.querySelectorAll('.add-denomination-input');
-        
-        inputs.forEach(input => {
-            const value = parseFloat(input.dataset.value);
-            const quantity = parseInt(input.value) || 0;
-            total += value * quantity;
-        });
-        
-        return Math.round(total * 100) / 100;
-    }
-    
-    /**
-     * Save a record for a past day to the backend API
-     */
-    async savePastRecord(event) {
-        event.preventDefault();
-
-        const dateInput = document.getElementById('recordDate');
-        const selectedDate = dateInput.value;
-
-        if (!selectedDate) {
-            alert("Please select a date.");
-            return;
-        }
-
-        const totalCash = this.calculateAddRecordTotal();
-        const takings = totalCash - this.FLOAT_TARGET;
-
-        const payload = {
-            date: selectedDate,
-            totalCash: totalCash,
-            takings: takings,
-            floatTotal: this.FLOAT_TARGET,
-            expectedTakings: 0, // Not tracked for manual entry
-            denominations: {},
-            floats: {}
-        };
-        
-        // Get denomination counts from the new form
-        document.querySelectorAll('.add-denomination-input').forEach(input => {
-            const count = parseInt(input.value) || 0;
-            payload.denominations[input.id.replace('add', '')] = count;
-        });
-        
-        // As floats are not entered for past days, we'll suggest a standard £200 float breakdown
-        const suggestedFloats = this.suggestFloatDenominations(this.FLOAT_TARGET);
-        Object.entries(suggestedFloats).forEach(([id, count]) => {
-            payload.floats[id] = count;
-        });
-
-        try {
-            const response = await fetch('/api/records/archive', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert(data.message);
-                // Clear the form on success
-                document.getElementById('addRecordForm').reset();
-            } else {
-                alert(`Error: ${data.error}`);
-            }
-        } catch (error) {
-            console.error('Error saving past record:', error);
-            alert('An unexpected error occurred while saving the record.');
-        }
-    }
-    
-    // Suggest float denominations for the payload (can be reused from existing code)
-    suggestFloatDenominations(targetAmount) {
-        let remaining = targetAmount;
-        const suggestions = {};
-        const floatStrategy = [
-            { id: 'floatNote20', value: 20 },
-            { id: 'floatNote10', value: 10 },
-            { id: 'floatNote5', value: 5 },
-            { id: 'floatCoin200', value: 2 },
-            { id: 'floatCoin100', value: 1 },
-            { id: 'floatCoin50', value: 0.5 },
-            { id: 'floatCoin20', value: 0.2 },
-            { id: 'floatCoin10', value: 0.1 },
-            { id: 'floatCoin5', value: 0.05 },
-            { id: 'floatCoin2', value: 0.02 },
-            { id: 'floatCoin1', value: 0.01 }
-        ];
-
-        floatStrategy.forEach(item => {
-            if (remaining <= 0) return;
-            const needed = Math.floor(remaining / item.value);
-            if (needed > 0) {
-                suggestions[item.id] = needed;
-                remaining -= needed * item.value;
-                remaining = Math.round(remaining * 100) / 100;
-            }
-        });
-        return suggestions;
-    }
-    
     /**
      * Calculate total cash from denomination inputs
      */
     calculateTotalCash() {
         let total = 0;
         const inputs = document.querySelectorAll('.denomination-input');
-        
+
         inputs.forEach(input => {
             const value = parseFloat(input.dataset.value);
             const quantity = parseInt(input.value) || 0;
             total += value * quantity;
         });
-        
+
         return Math.round(total * 100) / 100; // Round to 2 decimal places
     }
 
@@ -191,13 +93,13 @@ class TillCounter {
     calculateFloatTotal() {
         let total = 0;
         const inputs = document.querySelectorAll('.float-input');
-        
+
         inputs.forEach(input => {
             const value = parseFloat(input.dataset.value);
             const quantity = parseInt(input.value) || 0;
             total += value * quantity;
         });
-        
+
         return Math.round(total * 100) / 100; // Round to 2 decimal places
     }
 
@@ -207,7 +109,7 @@ class TillCounter {
     updateCalculations() {
         this.totalCash = this.calculateTotalCash();
         this.updateFloatCalculations();
-        
+
         // Update total display
         document.getElementById('totalAmount').textContent = `£${this.totalCash.toFixed(2)}`;
         document.getElementById('summaryTotal').textContent = `£${this.totalCash.toFixed(2)}`;
@@ -219,18 +121,18 @@ class TillCounter {
     updateFloatCalculations() {
         this.floatTotal = this.calculateFloatTotal();
         this.takings = Math.max(0, this.totalCash - this.floatTotal);
-        
+
         // Update display
         document.getElementById('floatTotal').textContent = `£${this.floatTotal.toFixed(2)}`;
         document.getElementById('summaryFloat').textContent = `£${this.floatTotal.toFixed(2)}`;
         document.getElementById('summaryTakings').textContent = `£${this.takings.toFixed(2)}`;
-        
+
         // Validate float amount
         this.validateFloat();
-        
+
         // Update comparison if expected takings is set
         this.updateComparison();
-        
+
         // Update denomination breakdown
         this.updateBreakdown();
     }
@@ -241,7 +143,7 @@ class TillCounter {
     validateFloat() {
         const errorDiv = document.getElementById('floatError');
         const errorMessage = document.getElementById('floatErrorMessage');
-        
+
         if (this.floatTotal > this.totalCash) {
             errorMessage.textContent = 'Float cannot exceed total cash available';
             errorDiv.classList.remove('d-none');
@@ -276,28 +178,28 @@ class TillCounter {
         const comparisonCard = document.getElementById('comparisonCard');
         const comparisonMessage = document.getElementById('comparisonMessage');
         const comparisonText = document.getElementById('comparisonText');
-        
+
         if (this.expectedTakings > 0) {
             // Show comparison section
             comparisonSection.style.display = 'block';
-            
+
             // Update displays
             document.getElementById('expectedDisplay').textContent = `£${this.expectedTakings.toFixed(2)}`;
             document.getElementById('actualDisplay').textContent = `£${this.takings.toFixed(2)}`;
-            
+
             // Calculate variance
             const variance = this.takings - this.expectedTakings;
             const variancePercent = this.expectedTakings > 0 ? (variance / this.expectedTakings * 100) : 0;
-            
+
             document.getElementById('varianceDisplay').textContent = `${variance >= 0 ? '+' : ''}£${variance.toFixed(2)}`;
             document.getElementById('variancePercent').textContent = `(${variancePercent >= 0 ? '+' : ''}${variancePercent.toFixed(1)}%)`;
-            
+
             // Set comparison card color and message based on variance
             let cardClass = 'border-success';
             let messageClass = 'alert-success';
             let icon = 'bi-check-circle';
             let message = '';
-            
+
             if (Math.abs(variance) <= 5) {
                 // Within £5 - excellent
                 message = 'Excellent! Takings match expected amount closely.';
@@ -306,19 +208,19 @@ class TillCounter {
                 icon = 'bi-check-circle';
             } else {
                 // Over £5 difference - needs attention
-                message = variance > 0 ? 
+                message = variance > 0 ?
                     `Takings exceed expected amount by £${Math.abs(variance).toFixed(2)}. Check for errors.` :
                     `Takings are below expected amount by £${Math.abs(variance).toFixed(2)}. Investigation needed.`;
                 cardClass = 'border-danger';
                 messageClass = 'alert-danger';
                 icon = 'bi-exclamation-triangle';
             }
-            
+
             // Apply styling
             comparisonCard.className = `card ${cardClass}`;
             comparisonMessage.className = `alert mb-0 ${messageClass}`;
             comparisonText.innerHTML = `<i class="bi ${icon} me-2"></i>${message}`;
-            
+
         } else {
             // Hide comparison section if no expected takings
             comparisonSection.style.display = 'none';
@@ -329,7 +231,10 @@ class TillCounter {
      * Save data to the backend API.
      */
     async saveData() {
+        const dateInput = document.getElementById('recordDate');
+
         const payload = {
+            date: dateInput.value,
             totalCash: this.totalCash,
             floatTotal: this.floatTotal,
             takings: this.takings,
@@ -349,7 +254,7 @@ class TillCounter {
             const count = parseInt(input.value) || 0;
             payload.floats[input.id] = count;
         });
-        
+
         try {
             const response = await fetch('/api/records', {
                 method: 'POST',
@@ -364,23 +269,36 @@ class TillCounter {
                 console.log('Record saved successfully:', data);
                 this.showSaveIndicator();
             } else {
-                console.error('Failed to save record:', response.statusText);
+                const errorData = await response.json();
+                console.error('Failed to save record:', errorData.error);
+                alert(`Error: ${errorData.error}`);
             }
         } catch (error) {
             console.error('Error saving record:', error);
+            alert('An unexpected error occurred while saving the record.');
         }
     }
 
     /**
-     * Load saved data from the backend API.
+     * Load saved data from the backend API for a given date.
      */
-    async loadSavedData() {
+    async loadSavedData(selectedDate = null) {
+        let url;
+        if (selectedDate) {
+            url = `/api/records?date=${selectedDate}`;
+        } else {
+            url = '/api/records/latest';
+        }
+
         try {
-            const response = await fetch('/api/records/latest');
+            const response = await fetch(url);
 
             if (response.ok) {
                 const data = await response.json();
                 console.log('Loading saved data from backend:', data);
+
+                // Clear existing form data before loading new data
+                this.resetAllForms();
 
                 // Load expected takings
                 document.getElementById('expectedTakings').value = data.expected_takings || '';
@@ -401,12 +319,12 @@ class TillCounter {
                         input.value = value;
                     }
                 });
-                
+
                 this.updateCalculations();
                 this.showSaveIndicator(); // Indicate that data was loaded
             } else if (response.status === 404) {
-                console.log('No existing record found for today.');
-                // No action needed, forms will remain empty
+                console.log('No existing record found for the selected date.');
+                this.resetAllForms();
             } else {
                 console.error('Failed to load data:', response.statusText);
             }
@@ -414,13 +332,14 @@ class TillCounter {
             console.error('Error loading data:', error);
         }
     }
-
+    
     /**
-     * Clear saved data. This is no longer necessary as we are not using localStorage.
+     * Clear all form inputs.
      */
-    clearSavedData() {
-        // No action needed as data is stored in the database
-        console.log('Data is now saved to the database. Not clearing local data.');
+    resetAllForms() {
+        document.querySelectorAll('.denomination-input').forEach(input => input.value = '');
+        document.querySelectorAll('.float-input').forEach(input => input.value = '');
+        document.getElementById('expectedTakings').value = '';
     }
 
     /**
@@ -429,7 +348,7 @@ class TillCounter {
     showSaveIndicator() {
         const indicator = document.getElementById('saveIndicator');
         indicator.style.display = 'inline-block';
-        
+
         // Hide after 2 seconds
         setTimeout(() => {
             indicator.style.display = 'none';
@@ -443,15 +362,15 @@ class TillCounter {
         const breakdownSection = document.getElementById('breakdownSection');
         const removeBreakdown = document.getElementById('removeBreakdown');
         const leaveBreakdown = document.getElementById('leaveBreakdown');
-        
+
         // Only show breakdown if there's cash in the till
         if (this.totalCash <= 0) {
             breakdownSection.style.display = 'none';
             return;
         }
-        
+
         breakdownSection.style.display = 'block';
-        
+
         // Define all denominations in order
         const denominations = [
             { id: 'note50', floatId: null, label: '£50 Notes', value: 50 },
@@ -467,24 +386,24 @@ class TillCounter {
             { id: 'coin2', floatId: 'floatCoin2', label: '2p Coins', value: 0.02 },
             { id: 'coin1', floatId: 'floatCoin1', label: '1p Coins', value: 0.01 }
         ];
-        
+
         let removeHTML = '';
         let leaveHTML = '';
         let hasRemovalItems = false;
         let hasFloatItems = false;
-        
+
         denominations.forEach(denom => {
             const totalInput = document.getElementById(denom.id);
             if (!totalInput) return;
-            
+
             const totalQuantity = parseInt(totalInput.value) || 0;
             if (totalQuantity === 0) return; // Skip if no quantity
-            
+
             // Get float quantity (0 if no float input for this denomination)
             const floatInput = denom.floatId ? document.getElementById(denom.floatId) : null;
             const floatQuantity = floatInput ? (parseInt(floatInput.value) || 0) : 0;
             const removeQuantity = Math.max(0, totalQuantity - floatQuantity);
-            
+
             // Add to remove list if there's something to remove
             if (removeQuantity > 0) {
                 const removeValue = removeQuantity * denom.value;
@@ -494,7 +413,7 @@ class TillCounter {
                 </div>`;
                 hasRemovalItems = true;
             }
-            
+
             // Add to leave list if there's something in float
             if (floatQuantity > 0) {
                 const floatValue = floatQuantity * denom.value;
@@ -505,7 +424,7 @@ class TillCounter {
                 hasFloatItems = true;
             }
         });
-        
+
         // Display results or empty messages
         if (hasRemovalItems) {
             removeHTML += `<div class="mt-2 p-2 bg-success text-white rounded">
@@ -515,7 +434,7 @@ class TillCounter {
         } else {
             removeBreakdown.innerHTML = '<div class="text-muted fst-italic">Nothing to remove</div>';
         }
-        
+
         if (hasFloatItems) {
             leaveHTML += `<div class="mt-2 p-2 bg-warning text-dark rounded">
                 <strong>Total to Leave: £${this.floatTotal.toFixed(2)}</strong>
@@ -525,7 +444,7 @@ class TillCounter {
             leaveBreakdown.innerHTML = '<div class="text-muted fst-italic">No float set</div>';
         }
     }
-    
+
     /**
      * Format denomination value for display
      */
@@ -543,7 +462,7 @@ class TillCounter {
     checkAvailability(denominationId, requestedQuantity) {
         const tillInput = document.getElementById(denominationId.replace('float', ''));
         if (!tillInput) return false;
-        
+
         const availableQuantity = parseInt(tillInput.value) || 0;
         return availableQuantity >= requestedQuantity;
     }
@@ -554,14 +473,14 @@ class TillCounter {
     suggestFloat() {
         // Clear current float
         this.clearFloat();
-        
+
         let remaining = this.FLOAT_TARGET;
         const suggestions = {};
-        
+
         // Define realistic float composition based on coin bag amounts and practical needs
         const floatStrategy = [
             { id: 'floatNote20', tillId: 'note20', value: 20, target: 4, maxBag: 1 }, // £80 in £20s
-            { id: 'floatNote10', tillId: 'note10', value: 10, target: 4, maxBag: 1 }, // £40 in £10s  
+            { id: 'floatNote10', tillId: 'note10', value: 10, target: 4, maxBag: 1 }, // £40 in £10s
             { id: 'floatNote5', tillId: 'note5', value: 5, target: 6, maxBag: 1 },   // £30 in £5s
             { id: 'floatCoin200', tillId: 'coin200', value: 2, target: 8, maxBag: 1 }, // £16 in £2s
             { id: 'floatCoin100', tillId: 'coin100', value: 1, target: 20, maxBag: 20 }, // £20 in £1s (1 bag = £20)
@@ -572,13 +491,13 @@ class TillCounter {
             { id: 'floatCoin2', tillId: 'coin2', value: 0.02, target: 25, maxBag: 50 }, // 50p in 2p (half bag)
             { id: 'floatCoin1', tillId: 'coin1', value: 0.01, target: 50, maxBag: 100 }  // 50p in 1p (half bag)
         ];
-        
+
         // Apply strategy based on availability and practical bag amounts
         floatStrategy.forEach(item => {
             if (remaining <= 0) return;
-            
+
             const available = parseInt(document.getElementById(item.tillId).value) || 0;
-            
+
             // For coins, prefer using complete or reasonable portions of bags
             let smartTarget = item.target;
             if (item.maxBag > 1) {
@@ -594,33 +513,33 @@ class TillCounter {
                     smartTarget = Math.min(item.target, Math.floor(available * 0.5));
                 }
             }
-            
+
             const needed = Math.min(smartTarget, available, Math.floor(remaining / item.value));
-            
+
             if (needed > 0) {
                 suggestions[item.id] = needed;
                 remaining -= needed * item.value;
                 remaining = Math.round(remaining * 100) / 100; // Handle floating point precision
             }
         });
-        
+
         // Apply suggestions to inputs
         Object.entries(suggestions).forEach(([id, quantity]) => {
             document.getElementById(id).value = quantity;
         });
-        
+
         // If we couldn't reach exactly £200, try harder to adjust with any available denominations
         if (remaining > 0) {
             this.adjustFloatForRemaining(remaining);
         }
-        
+
         // If we're over £200, reduce denominations to get exactly £200
         if (this.calculateFloatFromSuggestions(suggestions) > this.FLOAT_TARGET) {
             this.reduceFloatToTarget(suggestions);
         }
-        
+
         this.updateFloatCalculations();
-        
+
         // Show detailed feedback
         if (this.floatTotal === this.FLOAT_TARGET) {
             this.showFloatFeedback('Perfect! Exactly £200.00 float achieved.', 'success');
@@ -667,20 +586,20 @@ class TillCounter {
             { id: 'floatCoin2', tillId: 'coin2', value: 0.02 },
             { id: 'floatCoin1', tillId: 'coin1', value: 0.01 }
         ];
-        
+
         // Keep trying until we reach exactly £200 or run out of options
         let attempts = 0;
         while (remaining > 0 && attempts < 10) {
             let progress = false;
-            
+
             allDenominations.forEach(item => {
                 if (remaining <= 0) return;
-                
+
                 const currentFloat = parseInt(document.getElementById(item.id).value) || 0;
                 const available = parseInt(document.getElementById(item.tillId).value) || 0;
                 const needed = Math.floor(remaining / item.value);
                 const canAdd = Math.min(needed, available - currentFloat);
-                
+
                 if (canAdd > 0) {
                     document.getElementById(item.id).value = currentFloat + canAdd;
                     remaining -= canAdd * item.value;
@@ -688,7 +607,7 @@ class TillCounter {
                     progress = true;
                 }
             });
-            
+
             if (!progress) break; // No more adjustments possible
             attempts++;
         }
@@ -700,7 +619,7 @@ class TillCounter {
     reduceFloatToTarget(suggestions) {
         let currentTotal = this.calculateFloatTotal();
         let excess = currentTotal - this.FLOAT_TARGET;
-        
+
         // Remove denominations starting with largest values to reduce excess
         const reductionOrder = [
             { id: 'floatNote20', value: 20 },
@@ -715,13 +634,13 @@ class TillCounter {
             { id: 'floatCoin2', value: 0.02 },
             { id: 'floatCoin1', value: 0.01 }
         ];
-        
+
         reductionOrder.forEach(item => {
             if (excess <= 0) return;
-            
+
             const current = parseInt(document.getElementById(item.id).value) || 0;
             const toRemove = Math.min(Math.floor(excess / item.value), current);
-            
+
             if (toRemove > 0) {
                 document.getElementById(item.id).value = current - toRemove;
                 excess -= toRemove * item.value;
@@ -742,10 +661,10 @@ class TillCounter {
             feedback.className = 'alert mt-3';
             document.querySelector('#floatSelection').appendChild(feedback);
         }
-        
+
         feedback.className = `alert alert-${type} mt-3`;
         feedback.innerHTML = `<i class="bi bi-info-circle me-2"></i>${message}`;
-        
+
         // Auto-hide after 3 seconds
         setTimeout(() => {
             if (feedback && feedback.parentNode) {
@@ -774,29 +693,30 @@ class TillCounter {
         denominationInputs.forEach(input => {
             input.value = '';
         });
-        
+
         // Reset expected takings
         document.getElementById('expectedTakings').value = '';
         this.expectedTakings = 0;
-        
+
         // Reset float inputs
         this.clearFloat();
-        
-        // Clear saved data
-        this.clearSavedData();
-        
+
+        // Set date back to today
+        this.setInitialDate();
+        this.loadSavedData();
+
         // Update calculations
         this.updateCalculations();
-        
+
         // Hide comparison section
         document.getElementById('comparisonSection').style.display = 'none';
-        
+
         // Hide breakdown section
         document.getElementById('breakdownSection').style.display = 'none';
-        
+
         // Hide any error messages
         document.getElementById('floatError').classList.add('d-none');
-        
+
         // Remove any feedback messages
         const feedback = document.getElementById('floatFeedback');
         if (feedback) {
