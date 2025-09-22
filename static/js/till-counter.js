@@ -55,8 +55,120 @@ class TillCounter {
         if (historyBtn) {
             historyBtn.addEventListener('click', () => this.loadHistory());
         }
+
+        // Add event listener for the new "Add Record" form
+        document.getElementById('addRecordForm').addEventListener('submit', (event) => this.savePastRecord(event));
     }
 
+/**
+     * Calculate total cash for the add record form
+     */
+    calculateAddRecordTotal() {
+        let total = 0;
+        const inputs = document.querySelectorAll('.add-denomination-input');
+        
+        inputs.forEach(input => {
+            const value = parseFloat(input.dataset.value);
+            const quantity = parseInt(input.value) || 0;
+            total += value * quantity;
+        });
+        
+        return Math.round(total * 100) / 100;
+    }
+    
+    /**
+     * Save a record for a past day to the backend API
+     */
+    async savePastRecord(event) {
+        event.preventDefault();
+
+        const dateInput = document.getElementById('recordDate');
+        const selectedDate = dateInput.value;
+
+        if (!selectedDate) {
+            alert("Please select a date.");
+            return;
+        }
+
+        const totalCash = this.calculateAddRecordTotal();
+        const takings = totalCash - this.FLOAT_TARGET;
+
+        const payload = {
+            date: selectedDate,
+            totalCash: totalCash,
+            takings: takings,
+            floatTotal: this.FLOAT_TARGET,
+            expectedTakings: 0, // Not tracked for manual entry
+            denominations: {},
+            floats: {}
+        };
+        
+        // Get denomination counts from the new form
+        document.querySelectorAll('.add-denomination-input').forEach(input => {
+            const count = parseInt(input.value) || 0;
+            payload.denominations[input.id.replace('add', '')] = count;
+        });
+        
+        // As floats are not entered for past days, we'll suggest a standard £200 float breakdown
+        const suggestedFloats = this.suggestFloatDenominations(this.FLOAT_TARGET);
+        Object.entries(suggestedFloats).forEach(([id, count]) => {
+            payload.floats[id] = count;
+        });
+
+        try {
+            const response = await fetch('/api/records/archive', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.message);
+                // Clear the form on success
+                document.getElementById('addRecordForm').reset();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('Error saving past record:', error);
+            alert('An unexpected error occurred while saving the record.');
+        }
+    }
+    
+    // Suggest float denominations for the payload (can be reused from existing code)
+    suggestFloatDenominations(targetAmount) {
+        let remaining = targetAmount;
+        const suggestions = {};
+        const floatStrategy = [
+            { id: 'floatNote20', value: 20 },
+            { id: 'floatNote10', value: 10 },
+            { id: 'floatNote5', value: 5 },
+            { id: 'floatCoin200', value: 2 },
+            { id: 'floatCoin100', value: 1 },
+            { id: 'floatCoin50', value: 0.5 },
+            { id: 'floatCoin20', value: 0.2 },
+            { id: 'floatCoin10', value: 0.1 },
+            { id: 'floatCoin5', value: 0.05 },
+            { id: 'floatCoin2', value: 0.02 },
+            { id: 'floatCoin1', value: 0.01 }
+        ];
+
+        floatStrategy.forEach(item => {
+            if (remaining <= 0) return;
+            const needed = Math.floor(remaining / item.value);
+            if (needed > 0) {
+                suggestions[item.id] = needed;
+                remaining -= needed * item.value;
+                remaining = Math.round(remaining * 100) / 100;
+            }
+        });
+        return suggestions;
+    }
+    
     /**
      * Calculate total cash from denomination inputs
      */
