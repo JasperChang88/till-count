@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Till Counter & Float Manager</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-3">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="text-center">
+                    <h1 class="display-6 mb-2">
+                        <i class="bi bi-calculator me-2"></i>
+                        Till Counter & Float Manager
+                    </h1>
+                    <p class="text-muted">Streamline your end-of-day cash processes</p>
+                    <div class="text-center">
+                        <small class="text-success" id="saveIndicator" style="display: none;">
+                            <i class="bi bi-check-circle me-1"></i>Data automatically saved
+                        </small>
+                        <div class="mt-2">
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Display -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h2 class="card-title text-white mb-2">Total Cash Count</h2>
+                        <h1 class="display-4 text-white mb-0" id="totalAmount">£0.00</h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expected Takings Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">
+                            <i class="bi bi-target me-2"></i>
+                            Expected Takings
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12 col-md-6">
+                                <label for="expectedTakings" class="form-label">Today's Expected Takings</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text">£</span>
+                                    <input type="number" class="form-control" id="expectedTakings" 
+                                           min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+                                </div>
+                                <div class="form-text">Enter the expected takings for today to compare with actual results</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cash Input Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">
+                            <i class="bi bi-cash-stack me-2"></i>
+                            Cash Count
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Notes Section -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">Notes</h5>
+                            <div class="row g-3">
+                                <div class="col-6 col-md-3">
+                                    <label for="note50" class="form-label">£50 Notes</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">£50 ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="note50" data-value="50" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label for="note20" class="form-label">£20 Notes</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">£20 ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="note20" data-value="20" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label for="note10" class="form-label">£10 Notes</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">£10 ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="note10" data-value="10" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label for="note5" class="form-label">£5 Notes</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">£5 ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="note5" data-value="5" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coins Section -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">Coins</h5>
+                            <div class="row g-3">
+                                <div class="col-6 col-md-2">
+                                    <label for="coin200" class="form-label">£2 Coins</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">£2 ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="coin200" data-value="2" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label for="coin100" class="form-label">£1 Coins</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">£1 ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="coin100" data-value="1" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label for="coin50" class="form-label">50p Coins</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">50p ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="coin50" data-value="0.5" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label for="coin20" class="form-label">20p Coins</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">20p ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="coin20" data-value="0.2" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label for="coin10" class="form-label">10p Coins</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">10p ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="coin10" data-value="0.1" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label for="coin5" class="form-label">5p Coins</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">5p ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="coin5" data-value="0.05" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label for="coin2" class="form-label">2p Coins</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">2p ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="coin2" data-value="0.02" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label for="coin1" class="form-label">1p Coins</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">1p ×</span>
+                                        <input type="number" class="form-control denomination-input" 
+                                               id="coin1" data-value="0.01" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="button" class="btn btn-outline-secondary me-2" id="resetBtn">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>
+                                    Reset All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Float Management Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">
+                            <i class="bi bi-piggy-bank me-2"></i>
+                            Float Selection - £200 for Bag, Rest to Bank
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>What happens next:</strong> The £200 float will go in the bag for tomorrow's start. The remaining takings go to the bank.
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-md-6">
+                                <button type="button" class="btn btn-warning w-100 mb-2" id="suggestFloatBtn">
+                                    <i class="bi bi-lightbulb me-2"></i>
+                                    Suggest Float
+                                </button>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <button type="button" class="btn btn-outline-secondary w-100 mb-2" id="clearFloatBtn">
+                                    <i class="bi bi-x-circle me-2"></i>
+                                    Clear Float
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Float Selection -->
+                        <div id="floatSelection">
+                            <!-- Notes for Float -->
+                            <div class="mb-4">
+                                <h6 class="mb-3">Notes for Float</h6>
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-3">
+                                        <label for="floatNote20" class="form-label">£20 Notes</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">£20 ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatNote20" data-value="20" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <label for="floatNote10" class="form-label">£10 Notes</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">£10 ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatNote10" data-value="10" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <label for="floatNote5" class="form-label">£5 Notes</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">£5 ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatNote5" data-value="5" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Coins for Float -->
+                            <div class="mb-4">
+                                <h6 class="mb-3">Coins for Float</h6>
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-2">
+                                        <label for="floatCoin200" class="form-label">£2 Coins</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">£2 ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatCoin200" data-value="2" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label for="floatCoin100" class="form-label">£1 Coins</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">£1 ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatCoin100" data-value="1" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label for="floatCoin50" class="form-label">50p Coins</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">50p ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatCoin50" data-value="0.5" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label for="floatCoin20" class="form-label">20p Coins</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">20p ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatCoin20" data-value="0.2" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label for="floatCoin10" class="form-label">10p Coins</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">10p ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatCoin10" data-value="0.1" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label for="floatCoin5" class="form-label">5p Coins</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">5p ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatCoin5" data-value="0.05" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label for="floatCoin2" class="form-label">2p Coins</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">2p ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatCoin2" data-value="0.02" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label for="floatCoin1" class="form-label">1p Coins</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">1p ×</span>
+                                            <input type="number" class="form-control float-input" 
+                                                   id="floatCoin1" data-value="0.01" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="0">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Float Total Display -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-primary d-flex justify-content-between align-items-center">
+                                    <span><strong>Float Total (Goes in Bag - Must be £200.00):</strong></span>
+                                    <span class="fs-5" id="floatTotal">£0.00</span>
+                                </div>
+                                <div id="floatError" class="alert alert-warning d-none">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <span id="floatErrorMessage"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">
+                            <i class="bi bi-clipboard-check me-2"></i>
+                            Summary
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-muted">Total Cash</h6>
+                                        <h4 class="text-success mb-0" id="summaryTotal">£0.00</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="card bg-success">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-white">REMOVE From Till</h6>
+                                        <h4 class="text-white mb-0" id="summaryTakings">£0.00</h4>
+                                        <small class="text-white-50">Take to safe</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="card bg-warning">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-dark">LEAVE In Till</h6>
+                                        <h4 class="text-dark mb-0" id="summaryFloat">£0.00</h4>
+                                        <small class="text-dark">Float for tomorrow</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Denomination Breakdown -->
+                        <div class="row g-3 mb-3" id="breakdownSection" style="display: none;">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">
+                                            <i class="bi bi-list-check me-2"></i>
+                                            Denomination Breakdown
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-12 col-lg-6 mb-3">
+                                                <h6 class="text-success mb-2">
+                                                    <i class="bi bi-arrow-up-circle me-2"></i>
+                                                    REMOVE From Till (Take to Safe)
+                                                </h6>
+                                                <div id="removeBreakdown" class="small">
+                                                    <!-- Breakdown will be populated by JavaScript -->
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-lg-6 mb-3">
+                                                <h6 class="text-warning mb-2">
+                                                    <i class="bi bi-arrow-down-circle me-2"></i>
+                                                    LEAVE In Till (Float for Tomorrow)
+                                                </h6>
+                                                <div id="leaveBreakdown" class="small">
+                                                    <!-- Breakdown will be populated by JavaScript -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Expected vs Actual Comparison -->
+                        <div class="row g-3" id="comparisonSection" style="display: none;">
+                            <div class="col-12">
+                                <div class="card" id="comparisonCard">
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-12 col-md-4">
+                                                <h6 class="text-muted mb-1">Expected Takings</h6>
+                                                <h5 class="mb-0" id="expectedDisplay">£0.00</h5>
+                                            </div>
+                                            <div class="col-12 col-md-4">
+                                                <h6 class="text-muted mb-1">Actual Takings</h6>
+                                                <h5 class="mb-0" id="actualDisplay">£0.00</h5>
+                                            </div>
+                                            <div class="col-12 col-md-4">
+                                                <h6 class="text-muted mb-1">Variance</h6>
+                                                <h5 class="mb-0" id="varianceDisplay">£0.00</h5>
+                                                <small class="text-muted" id="variancePercent"></small>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <div class="alert mb-0" id="comparisonMessage">
+                                                <i class="bi bi-info-circle me-2"></i>
+                                                <span id="comparisonText">Enter expected takings to see comparison</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="historyModalLabel">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Till History
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="historyDatePicker" class="form-label">Load Specific Date:</label>
+                            <input type="date" class="form-control" id="historyDatePicker">
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary me-2" id="loadDateBtn">
+                                <i class="bi bi-download me-1"></i>
+                                Load Record
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="refreshHistoryBtn">
+                                <i class="bi bi-arrow-clockwise me-1"></i>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="historyLoading" class="text-center py-3" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading historical records...</p>
+                    </div>
+                    
+                    <div id="historyContent">
+                        <h6>Recent Records:</h6>
+                        <div id="historyList" class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Total Cash</th>
+                                        <th>Float</th>
+                                        <th>Takings</th>
+                                        <th>Expected</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                    <!-- Historical records will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/till-counter.js') }}"></script>
+</body>
+</html>

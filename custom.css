@@ -1,0 +1,135 @@
+/**
+ * Custom styles for Till Counter & Float Manager
+ * Minimal overrides to complement Bootstrap theme
+ */
+
+/* Ensure proper spacing and mobile responsiveness */
+.input-group-text {
+    min-width: 60px;
+    justify-content: center;
+    font-weight: 500;
+}
+
+/* Make number inputs more touch-friendly on mobile */
+.form-control[type="number"] {
+    font-size: 16px; /* Prevents zoom on iOS */
+    text-align: center;
+}
+
+/* Improve button spacing on mobile */
+@media (max-width: 576px) {
+    .btn {
+        margin-bottom: 0.5rem;
+    }
+    
+    .input-group-text {
+        font-size: 0.875rem;
+        min-width: 50px;
+    }
+}
+
+/* Enhanced card styling for better visual hierarchy */
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    border-bottom: 2px solid var(--bs-border-color);
+    font-weight: 600;
+}
+
+/* Highlight the total display */
+.display-4 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* Improve alert styling */
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+/* Better spacing for mobile forms */
+.row.g-3 > * {
+    margin-bottom: 0.75rem;
+}
+
+/* Ensure proper contrast for input groups */
+.input-group-text {
+    background-color: var(--bs-secondary-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+/* Smooth transitions for dynamic content */
+.alert {
+    transition: all 0.3s ease;
+}
+
+/* Improve touch targets for mobile */
+@media (max-width: 768px) {
+    .btn {
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+    
+    .form-control {
+        padding: 0.75rem 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Ensure good contrast for summary cards */
+.card.bg-light .text-muted {
+    color: #6c757d !important;
+}
+
+.card.bg-success .text-white,
+.card.bg-primary .text-white {
+    color: white !important;
+}
+
+/* Enhanced styling for light theme */
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    background-color: white;
+    border: 1px solid #dee2e6;
+}
+
+.input-group-text {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #495057;
+    font-weight: 600;
+}
+
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Loading state for buttons (if needed) */
+.btn.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Better focus states for accessibility */
+.form-control:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+}
