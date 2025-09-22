@@ -1,6 +1,7 @@
 /**
  * Till Counter & Float Manager
  * JavaScript functionality for real-time calculations and float management
+ * Updated to use a backend API for data persistence
  */
 
 class TillCounter {
@@ -13,7 +14,6 @@ class TillCounter {
         
         this.initializeEventListeners();
         this.loadSavedData();
-        this.updateCalculations();
     }
 
     /**
@@ -25,7 +25,7 @@ class TillCounter {
         denominationInputs.forEach(input => {
             input.addEventListener('input', () => {
                 this.updateCalculations();
-                this.saveData();
+                this.saveData(); // Save data on every input change
             });
         });
 
@@ -34,7 +34,7 @@ class TillCounter {
         floatInputs.forEach(input => {
             input.addEventListener('input', () => {
                 this.updateFloatCalculations();
-                this.saveData();
+                this.saveData(); // Save data on every input change
             });
         });
 
@@ -42,7 +42,7 @@ class TillCounter {
         const expectedTakingsInput = document.getElementById('expectedTakings');
         expectedTakingsInput.addEventListener('input', () => {
             this.updateExpectedTakings();
-            this.saveData();
+            this.saveData(); // Save data on every input change
         });
 
         // Button listeners
@@ -50,6 +50,11 @@ class TillCounter {
         document.getElementById('suggestFloatBtn').addEventListener('click', () => this.suggestFloat());
         document.getElementById('clearFloatBtn').addEventListener('click', () => this.clearFloat());
         
+        // This is a placeholder for future history functionality
+        const historyBtn = document.getElementById('historyBtn');
+        if (historyBtn) {
+            historyBtn.addEventListener('click', () => this.loadHistory());
+        }
     }
 
     /**
@@ -209,147 +214,101 @@ class TillCounter {
     }
 
     /**
-     * Save all input data to localStorage
+     * Save data to the backend API.
      */
-    saveData() {
+    async saveData() {
+        const payload = {
+            totalCash: this.totalCash,
+            floatTotal: this.floatTotal,
+            takings: this.takings,
+            expectedTakings: this.expectedTakings,
+            denominations: {},
+            floats: {}
+        };
+
+        // Get denomination inputs
+        document.querySelectorAll('.denomination-input').forEach(input => {
+            const count = parseInt(input.value) || 0;
+            payload.denominations[input.id] = count;
+        });
+
+        // Get float inputs
+        document.querySelectorAll('.float-input').forEach(input => {
+            const count = parseInt(input.value) || 0;
+            payload.floats[input.id] = count;
+        });
+        
         try {
-            const data = {
-                expectedTakings: document.getElementById('expectedTakings').value,
-                denominations: {},
-                floats: {},
-                timestamp: new Date().toISOString(),
-                date: new Date().toDateString() // Add date for reference
-            };
-
-            // Save denomination inputs
-            document.querySelectorAll('.denomination-input').forEach(input => {
-                data.denominations[input.id] = input.value;
+            const response = await fetch('/api/records', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
             });
 
-            // Save float inputs
-            document.querySelectorAll('.float-input').forEach(input => {
-                data.floats[input.id] = input.value;
-            });
-
-            localStorage.setItem('tillCounterData', JSON.stringify(data));
-            // Also save a backup with today's date
-            const today = new Date().toISOString().split('T')[0];
-            localStorage.setItem(`tillCounterData_${today}`, JSON.stringify(data));
-            
-            this.showSaveIndicator();
-            console.log('Data saved to localStorage at', new Date().toLocaleTimeString());
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Record saved successfully:', data);
+                this.showSaveIndicator();
+            } else {
+                console.error('Failed to save record:', response.statusText);
+            }
         } catch (error) {
-            console.error('Failed to save data to localStorage:', error);
+            console.error('Error saving record:', error);
         }
     }
 
     /**
-     * Load saved data from localStorage
+     * Load saved data from the backend API.
      */
-    loadSavedData() {
+    async loadSavedData() {
         try {
-            let savedData = localStorage.getItem('tillCounterData');
-            
-            // If main data doesn't exist, try today's backup
-            if (!savedData) {
-                const today = new Date().toISOString().split('T')[0];
-                savedData = localStorage.getItem(`tillCounterData_${today}`);
-            }
-            
-            if (!savedData) {
-                console.log('No saved data found');
-                return;
-            }
+            const response = await fetch('/api/records/latest');
 
-            const data = JSON.parse(savedData);
-            console.log('Loading saved data from', data.date || data.timestamp);
-            
-            // Load expected takings
-            if (data.expectedTakings) {
-                document.getElementById('expectedTakings').value = data.expectedTakings;
-                this.expectedTakings = parseFloat(data.expectedTakings) || 0;
-            }
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Loading saved data from backend:', data);
 
-            // Load denomination inputs
-            if (data.denominations) {
+                // Load expected takings
+                document.getElementById('expectedTakings').value = data.expected_takings || '';
+                this.expectedTakings = parseFloat(data.expected_takings) || 0;
+
+                // Load denomination inputs
                 Object.entries(data.denominations).forEach(([id, value]) => {
                     const input = document.getElementById(id);
                     if (input && value) {
                         input.value = value;
                     }
                 });
-            }
 
-            // Load float inputs
-            if (data.floats) {
-                Object.entries(data.floats).forEach(([id, value]) => {
+                // Load float inputs
+                Object.entries(data.float_denominations).forEach(([id, value]) => {
                     const input = document.getElementById(id);
                     if (input && value) {
                         input.value = value;
                     }
                 });
+                
+                this.updateCalculations();
+                this.showSaveIndicator(); // Indicate that data was loaded
+            } else if (response.status === 404) {
+                console.log('No existing record found for today.');
+                // No action needed, forms will remain empty
+            } else {
+                console.error('Failed to load data:', response.statusText);
             }
-            
-            console.log('Data loaded successfully');
-
         } catch (error) {
-            console.warn('Failed to load saved data:', error);
-            // Try loading from backup if main data is corrupted
-            try {
-                const today = new Date().toISOString().split('T')[0];
-                const backupData = localStorage.getItem(`tillCounterData_${today}`);
-                if (backupData) {
-                    console.log('Attempting to load from backup...');
-                    const data = JSON.parse(backupData);
-                    if (data.expectedTakings) {
-                        document.getElementById('expectedTakings').value = data.expectedTakings;
-                    }
-                }
-            } catch (backupError) {
-                console.warn('Failed to load backup data:', backupError);
-            }
+            console.error('Error loading data:', error);
         }
     }
 
     /**
-     * Clear saved data from localStorage
+     * Clear saved data. This is no longer necessary as we are not using localStorage.
      */
     clearSavedData() {
-        localStorage.removeItem('tillCounterData');
-    }
-
-
-
-
-
-
-
-    /**
-     * Load selected date from date picker
-     */
-
-
-    /**
-     * Format date for display
-     */
-    formatDate(dateStr) {
-        const date = new Date(dateStr);
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        if (date.toDateString() === today.toDateString()) {
-            return 'Today';
-        } else if (date.toDateString() === yesterday.toDateString()) {
-            return 'Yesterday';
-        } else {
-            return date.toLocaleDateString('en-GB', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-            });
-        }
+        // No action needed as data is stored in the database
+        console.log('Data is now saved to the database. Not clearing local data.');
     }
 
     /**
