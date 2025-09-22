@@ -118,35 +118,45 @@ class DailyTillRecord(db.Model):
 def save_record():
     try:
         data = request.json
-        record_date = date.today()
+        record_date_str = data.get('date')
 
-        # Check if a record for today already exists
-        record = DailyTillRecord.query.filter_by(date=record_date).first()
+        if record_date_str:
+            # If a date is provided, save a record for that specific date.
+            # We will NOT allow editing of existing records.
+            record_date = datetime.strptime(record_date_str, '%Y-%m-%d').date()
+            existing_record = DailyTillRecord.query.filter_by(date=record_date).first()
+            if existing_record:
+                return jsonify({'error': f'Record for {record_date} already exists. Cannot edit previous data.'}), 409
 
-        if record:
-            # Update existing record
+        else:
+            # If no date is provided, default to today's date.
+            # This is your main till counter functionality.
+            record_date = date.today()
+            existing_record = DailyTillRecord.query.filter_by(date=record_date).first()
+
+        denominations = data.get('denominations')
+        floats = data.get('floats')
+
+        if existing_record:
+            # Update existing record for today only
             logging.info(f"Updating existing record for {record_date}")
-            record.total_cash = data.get('totalCash')
-            record.float_total = data.get('floatTotal')
-            record.takings = data.get('takings')
-            record.expected_takings = data.get('expectedTakings')
-            # Update all denomination counts from the data
-            for key, value in data.get('denominations').items():
-                setattr(record, f"{key}_count", value)
-            for key, value in data.get('floats').items():
-                setattr(record, f"float_{key}_count", value)
+            existing_record.total_cash = data.get('totalCash')
+            existing_record.float_total = data.get('floatTotal')
+            existing_record.takings = data.get('takings')
+            existing_record.expected_takings = data.get('expectedTakings')
+            for key, value in denominations.items():
+                setattr(existing_record, f"{key}_count", value)
+            for key, value in floats.items():
+                setattr(existing_record, f"float_{key}_count", value)
         else:
             # Create a new record
             logging.info(f"Creating new record for {record_date}")
-            denominations = data.get('denominations')
-            floats = data.get('floats')
-            record = DailyTillRecord(
+            new_record = DailyTillRecord(
                 date=record_date,
                 total_cash=data.get('totalCash'),
                 float_total=data.get('floatTotal'),
                 takings=data.get('takings'),
                 expected_takings=data.get('expectedTakings'),
-                # Pass counts for notes and coins
                 note50_count=denominations.get('note50'),
                 note20_count=denominations.get('note20'),
                 note10_count=denominations.get('note10'),
@@ -159,7 +169,6 @@ def save_record():
                 coin5_count=denominations.get('coin5'),
                 coin2_count=denominations.get('coin2'),
                 coin1_count=denominations.get('coin1'),
-                # Pass counts for float
                 float_note20_count=floats.get('floatNote20'),
                 float_note10_count=floats.get('floatNote10'),
                 float_note5_count=floats.get('floatNote5'),
@@ -172,16 +181,16 @@ def save_record():
                 float_coin2_count=floats.get('floatCoin2'),
                 float_coin1_count=floats.get('floatCoin1')
             )
-            db.session.add(record)
+            db.session.add(new_record)
         
         db.session.commit()
-        return jsonify({'message': 'Record saved successfully!', 'record': record.to_dict()}), 200
+        return jsonify({'message': 'Record saved successfully!', 'record': existing_record.to_dict() if existing_record else new_record.to_dict()}), 200
         
     except Exception as e:
         db.session.rollback()
         logging.error(f"Failed to save record: {e}")
         return jsonify({'error': 'Failed to save record'}), 500
-
+        
 # API endpoint to get the latest till record
 @app.route('/api/records/latest', methods=['GET'])
 def get_latest_record():
