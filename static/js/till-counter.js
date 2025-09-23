@@ -33,32 +33,32 @@ class TillCounter {
      * Initialize all event listeners
      */
     initializeEventListeners() {
-        // Denomination input listeners
+        // Denomination input listeners - calls saveData() on every change
         const denominationInputs = document.querySelectorAll('.denomination-input');
         denominationInputs.forEach(input => {
             input.addEventListener('input', () => {
                 this.updateCalculations();
-                this.saveData(); // Save data on every input change
+                this.saveData();
             });
         });
 
-        // Float input listeners
+        // Float input listeners - calls saveData() on every change
         const floatInputs = document.querySelectorAll('.float-input');
         floatInputs.forEach(input => {
             input.addEventListener('input', () => {
                 this.updateFloatCalculations();
-                this.saveData(); // Save data on every input change
+                this.saveData();
             });
         });
 
-        // Expected takings listener
+        // Expected takings listener - calls saveData() on every change
         const expectedTakingsInput = document.getElementById('expectedTakings');
         expectedTakingsInput.addEventListener('input', () => {
             this.updateExpectedTakings();
-            this.saveData(); // Save data on every input change
+            this.saveData();
         });
 
-        // Date input listener
+        // Date input listener - calls loadSavedData() when the date is changed
         const dateInput = document.getElementById('recordDate');
         dateInput.addEventListener('change', () => {
             this.loadSavedData(dateInput.value);
@@ -86,7 +86,7 @@ class TillCounter {
             total = total + value * quantity;
         });
         
-        return Math.round(total * 100) / 100; // Round to 2 decimal places
+        return Math.round(total * 100) / 100;
     }
 
     /**
@@ -102,7 +102,7 @@ class TillCounter {
             total = total + value * quantity;
         });
         
-        return Math.round(total * 100) / 100; // Round to 2 decimal places
+        return Math.round(total * 100) / 100;
     }
 
     /**
@@ -372,6 +372,7 @@ class TillCounter {
         document.querySelectorAll('.denomination-input').forEach(input => input.value = '');
         document.querySelectorAll('.float-input').forEach(input => input.value = '');
         document.getElementById('expectedTakings').value = '';
+        this.updateCalculations(); // Recalculate totals after resetting
     }
 
     /**
@@ -433,13 +434,13 @@ class TillCounter {
             const removeQuantity = Math.max(0, totalQuantity - floatQuantity);
 
             if (removeQuantity > 0) {
-                const removeValue = Math.round(removeQuantity * denom.value * 100) / 100; // Fixes rounding
+                const removeValue = Math.round(removeQuantity * denom.value * 100) / 100;
                 removeHTML += `<p class="mb-1"><span>${denom.label}:</span> <span class="float-end"><strong>${removeQuantity} × ${this.formatDenomination(denom.value)} = £${removeValue.toFixed(2)}</strong></span></p>`;
                 hasRemovalItems = true;
             }
 
             if (floatQuantity > 0) {
-                const floatValue = Math.round(floatQuantity * denom.value * 100) / 100; // Fixes rounding
+                const floatValue = Math.round(floatQuantity * denom.value * 100) / 100;
                 leaveHTML += `<p class="mb-1"><span>${denom.label}:</span> <span class="float-end"><strong>${floatQuantity} × ${this.formatDenomination(denom.value)} = £${floatValue.toFixed(2)}</strong></span></p>`;
                 hasFloatItems = true;
             }
@@ -463,7 +464,7 @@ class TillCounter {
             leaveBreakdown.innerHTML = '<div class="text-muted fst-italic">No float set</div>';
         }
     }
-    
+
     /**
      * Format denomination value for display
      */
@@ -722,3 +723,4 @@ class TillCounter {
 document.addEventListener('DOMContentLoaded', () => {
     new TillCounter();
 });
+
