@@ -480,7 +480,7 @@ class TillCounter {
         // Define realistic float composition based on coin bag amounts and practical needs
         const floatStrategy = [
             { id: 'floatNote20', tillId: 'note20', value: 20, target: 4, maxBag: 1 }, // £80 in £20s
-            { id: 'floatNote10', tillId: 'note10', value: 10, target: 4, maxBag: 1 }, // £40 in £10s
+            { id: 'floatNote10', tillId: 'note10', value: 10, target: 4, maxBag: 1 }, // £40 in £10s  
             { id: 'floatNote5', tillId: 'note5', value: 5, target: 6, maxBag: 1 },   // £30 in £5s
             { id: 'floatCoin200', tillId: 'coin200', value: 2, target: 8, maxBag: 1 }, // £16 in £2s
             { id: 'floatCoin100', tillId: 'coin100', value: 1, target: 20, maxBag: 20 }, // £20 in £1s (1 bag = £20)
@@ -491,6 +491,122 @@ class TillCounter {
             { id: 'floatCoin2', tillId: 'coin2', value: 0.02, target: 25, maxBag: 50 }, // 50p in 2p (half bag)
             { id: 'floatCoin1', tillId: 'coin1', value: 0.01, target: 50, maxBag: 100 }  // 50p in 1p (half bag)
         ];
+
+        // Apply strategy based on availability and practical bag amounts
+        floatStrategy.forEach(item => {
+            if (remaining <= 0) return;
+
+            const available = parseInt(document.getElementById(item.tillId).value) || 0;
+
+            // For coins, prefer using complete or reasonable portions of bags
+            let smartTarget = item.target;
+            if (item.maxBag > 1) {
+                // For coins that come in bags, be more conservative
+                if (available >= item.maxBag) {
+                    // We have at least a full bag, use the target amount
+                    smartTarget = item.target;
+                } else if (available >= item.maxBag / 2) {
+                    // We have at least half a bag, use a smaller amount
+                    smartTarget = Math.min(item.target, Math.floor(available * 0.7));
+                } else {
+                    // Very few coins available, use sparingly
+                    smartTarget = Math.min(item.target, Math.floor(available * 0.5));
+                }
+            }
+
+            const needed = Math.min(smartTarget, available, Math.floor(remaining / item.value));
+
+            if (needed > 0) {
+                suggestions[item.id] = needed;
+                remaining -= needed * item.value;
+                remaining = Math.round(remaining * 100) / 100; // Handle floating point precision
+            }
+        });
+
+        // Apply suggestions to inputs
+        Object.entries(suggestions).forEach(([id, quantity]) => {
+            document.getElementById(id).value = quantity;
+        });
+
+        // If we couldn't reach exactly £200, try harder to adjust with any available denominations
+        if (remaining > 0) {
+            this.adjustFloatForRemaining(remaining);
+        }
+
+        // If we're over £200, reduce denominations to get exactly £200
+        if (this.calculateFloatFromSuggestions(suggestions) > this.FLOAT_TARGET) {
+            this.reduceFloatToTarget(suggestions);
+        }
+
+        this.updateFloatCalculations();
+        this.saveData(); // <== New line to save the data to the backend
+
+        // Show detailed feedback
+        if (this.floatTotal === this.FLOAT_TARGET) {
+            this.showFloatFeedback('Perfect! Exactly £200.00 float achieved.', 'success');
+        } else {
+            const shortage = this.FLOAT_TARGET - this.floatTotal;
+            if (shortage > 0) {
+                this.showFloatFeedback(`Float suggested: £${this.floatTotal.toFixed(2)}. Not enough cash available to reach exact £200.00 target. Need £${shortage.toFixed(2)} more.`, 'danger');
+            } else {
+                this.showFloatFeedback(`Float suggested: £${this.floatTotal.toFixed(2)}. Exceeds £200.00 target. Remove £${Math.abs(shortage).toFixed(2)}.`, 'danger');
+            }
+        }
+    }
+
+
+    /**
+     * Load saved data from the backend API for a given date.
+     */
+    async loadSavedData(selectedDate = null) {
+        this.resetAllForms(); // <== New line to clear the forms
+
+        let url;
+        if (selectedDate) {
+            url = `/api/records?date=${selectedDate}`;
+        } else {
+            url = '/api/records/latest';
+        }
+
+        try {
+            const response = await fetch(url);
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Loading saved data from backend:', data);
+
+                // Load expected takings
+                document.getElementById('expectedTakings').value = data.expected_takings || '';
+                this.expectedTakings = parseFloat(data.expected_takings) || 0;
+
+                // Load denomination inputs
+                Object.entries(data.denominations).forEach(([id, value]) => {
+                    const input = document.getElementById(id);
+                    if (input && value) {
+                        input.value = value;
+                    }
+                });
+
+                // Load float inputs
+                Object.entries(data.float_denominations).forEach(([id, value]) => {
+                    const input = document.getElementById(id);
+                    if (input && value) {
+                        input.value = value;
+                    }
+                });
+
+                this.updateCalculations();
+                this.showSaveIndicator(); // Indicate that data was loaded
+            } else if (response.status === 404) {
+                console.log('No existing record found for the selected date.');
+                this.resetAllForms();
+            } else {
+                console.error('Failed to load data:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error loading data:', error);
+        }
+    }
 
         // Apply strategy based on availability and practical bag amounts
         floatStrategy.forEach(item => {
