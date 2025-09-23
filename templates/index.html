@@ -410,39 +410,37 @@
                         
                         <!-- Denomination Breakdown -->
                         <div class="row g-3 mb-3" id="breakdownSection" style="display: none;">
-                            <div class="col-12">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="card-title mb-0">
-                                            <i class="bi bi-list-check me-2"></i>
-                                            Denomination Breakdown
-                                        </h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-12 col-lg-6 mb-3">
-                                                <h6 class="text-success mb-2">
-                                                    <i class="bi bi-arrow-up-circle me-2"></i>
-                                                    REMOVE From Till (Take to Safe)
-                                                </h6>
-                                                <div id="removeBreakdown" class="small">
-                                                    <!-- Breakdown will be populated by JavaScript -->
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-lg-6 mb-3">
-                                                <h6 class="text-warning mb-2">
-                                                    <i class="bi bi-arrow-down-circle me-2"></i>
-                                                    LEAVE In Till (Float for Tomorrow)
-                                                </h6>
-                                                <div id="leaveBreakdown" class="small">
-                                                    <!-- Breakdown will be populated by JavaScript -->
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-list-check me-2"></i>
+                    Denomination Breakdown
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-12 col-lg-6 mb-3">
+                        <h6 class="text-success mb-2">
+                            <i class="bi bi-arrow-up-circle me-2"></i>
+                            REMOVE From Till (Take to Safe)
+                        </h6>
+                        <div class="small text-start" id="removeBreakdown">
                             </div>
-                        </div>
+                    </div>
+                    <div class="col-12 col-lg-6 mb-3">
+                        <h6 class="text-warning mb-2">
+                            <i class="bi bi-arrow-down-circle me-2"></i>
+                            LEAVE In Till (Float for Tomorrow)
+                        </h6>
+                        <div class="small text-start" id="leaveBreakdown">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                         
                         <!-- Expected vs Actual Comparison -->
                         <div class="row g-3" id="comparisonSection" style="display: none;">
