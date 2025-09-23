@@ -269,8 +269,6 @@ class TillCounter {
      * Load saved data from the backend API for a given date.
      */
     async loadSavedData(selectedDate = null) {
-        this.resetAllForms();
-
         let url;
         if (selectedDate) {
             url = `/api/records?date=${selectedDate}`;
@@ -284,6 +282,8 @@ class TillCounter {
             if (response.ok) {
                 const data = await response.json();
                 console.log('Loading saved data from backend:', data);
+
+                this.resetAllForms();
 
                 document.getElementById('expectedTakings').value = data.expected_takings || '';
                 this.expectedTakings = parseFloat(data.expected_takings) || 0;
@@ -306,7 +306,7 @@ class TillCounter {
                 this.showSaveIndicator();
             } else if (response.status === 404) {
                 console.log('No existing record found for the selected date.');
-                this.resetAllForms();
+                // Don't reset forms if no record is found, allowing user to input new data
             } else {
                 console.error('Failed to load data:', response.statusText);
             }
@@ -414,7 +414,7 @@ class TillCounter {
             { id: 'coin10', floatId: 'floatCoin10', label: '10p Coins', value: 0.1 },
             { id: 'coin5', floatId: 'floatCoin5', label: '5p Coins', value: 0.05 },
             { id: 'coin2', floatId: 'floatCoin2', label: '2p Coins', value: 0.02 },
-            { id: 'coin1', floatId: 'floatCoin1', label: '1p Coins', value: 0.01 }
+            { id: 'coin1', floatId: 'coin1', label: '1p Coins', value: 0.01 }
         ];
 
         let removeHTML = '';
@@ -723,4 +723,3 @@ class TillCounter {
 document.addEventListener('DOMContentLoaded', () => {
     new TillCounter();
 });
-
