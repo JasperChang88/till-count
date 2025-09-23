@@ -1,15 +1,22 @@
 import os
 import logging
 from datetime import datetime, date
-from flask import Flask, render_template, request, jsonify # Ensure jsonify is imported
+from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
+import google.generativeai as genai
+import json
 
 load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+
+# Configure Gemini API
+# NOTE: The API key is stored in the environment variables.
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel('gemini-1.5-pro-latest')
 
 class Base(DeclarativeBase):
     pass
@@ -121,16 +128,11 @@ def save_record():
         record_date_str = data.get('date')
 
         if record_date_str:
-            # If a date is provided, save a record for that specific date.
-            # We will NOT allow editing of existing records.
             record_date = datetime.strptime(record_date_str, '%Y-%m-%d').date()
             existing_record = DailyTillRecord.query.filter_by(date=record_date).first()
             if existing_record:
                 return jsonify({'error': f'Record for {record_date} already exists. Cannot edit previous data.'}), 409
-
         else:
-            # If no date is provided, default to today's date.
-            # This is your main till counter functionality.
             record_date = date.today()
             existing_record = DailyTillRecord.query.filter_by(date=record_date).first()
 
@@ -138,7 +140,6 @@ def save_record():
         floats = data.get('floats')
 
         if existing_record:
-            # Update existing record for today only
             logging.info(f"Updating existing record for {record_date}")
             existing_record.total_cash = data.get('totalCash')
             existing_record.float_total = data.get('floatTotal')
@@ -149,7 +150,6 @@ def save_record():
             for key, value in floats.items():
                 setattr(existing_record, f"float_{key}_count", value)
         else:
-            # Create a new record
             logging.info(f"Creating new record for {record_date}")
             new_record = DailyTillRecord(
                 date=record_date,
@@ -190,7 +190,7 @@ def save_record():
         db.session.rollback()
         logging.error(f"Failed to save record: {e}")
         return jsonify({'error': 'Failed to save record'}), 500
-        
+
 # API endpoint to get the latest till record
 @app.route('/api/records/latest', methods=['GET'])
 def get_latest_record():
@@ -204,78 +204,71 @@ def get_latest_record():
         logging.error(f"Failed to fetch record: {e}")
         return jsonify({'error': 'Failed to fetch record'}), 500
 
-# API endpoint to save a record for a specific date (cannot edit)
-@app.route('/api/records/archive', methods=['POST'])
-def archive_record():
+# API endpoint to get a specific record by date
+@app.route('/api/records', methods=['GET'])
+def get_record_by_date():
+    try:
+        date_str = request.args.get('date')
+        if not date_str:
+            # If no date is provided, return the latest record (for compatibility)
+            return get_latest_record()
+
+        record_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        record = DailyTillRecord.query.filter_by(date=record_date).first()
+
+        if record:
+            return jsonify(record.to_dict()), 200
+        else:
+            return jsonify({'message': 'No record found for this date'}), 404
+    except Exception as e:
+        logging.error(f"Failed to fetch record by date: {e}")
+        return jsonify({'error': 'Failed to fetch record'}), 500
+
+# New API endpoint for generating a summary
+@app.route('/api/generate-summary', methods=['POST'])
+def generate_summary():
     try:
         data = request.json
-        record_date_str = data.get('date')
-        if not record_date_str:
-            return jsonify({'error': 'Date is required'}), 400
-        
-        record_date = datetime.strptime(record_date_str, '%Y-%m-%d').date()
+        takings = data.get('takings', 0)
+        expected = data.get('expectedTakings', 0)
+        float_total = data.get('floatTotal', 0)
+        total_cash = data.get('totalCash', 0)
 
-        # Check if a record for this date already exists
-        existing_record = DailyTillRecord.query.filter_by(date=record_date).first()
+        # Create the prompt for the LLM
+        prompt = f"""
+        Act as a retail manager analyzing the end-of-day till count.
+        Provide a concise, single-paragraph summary of the day's performance.
 
-        if existing_record:
-            logging.warning(f"Attempted to archive an existing record for {record_date}")
-            return jsonify({'error': 'Record for this date already exists. Cannot edit previous data.'}), 409
+        Here is the data:
+        - Total Cash in Till: £{total_cash:.2f}
+        - Total Takings (to be removed): £{takings:.2f}
+        - Expected Takings: £{expected:.2f}
+        - Float for Tomorrow: £{float_total:.2f}
+
+        Based on this data, write a summary.
+        If the total takings are exactly the expected takings, mention that performance was 'perfect'.
+        If there is a positive variance, mention that performance was 'excellent'.
+        If there is a negative variance, mention that there was a 'shortage'.
+        Always mention the total takings, and if an expected takings amount was provided, mention the variance.
+        If the float is exactly £200.00, mention that the float was 'correct'.
+        """
+
+        response = model.generate_content(prompt)
+        summary = response.text
         
-        # Create a new record
-        logging.info(f"Creating new archived record for {record_date}")
-        denominations = data.get('denominations', {})
-        floats = data.get('floats', {})
-        new_record = DailyTillRecord(
-            date=record_date,
-            total_cash=data.get('totalCash'),
-            float_total=data.get('floatTotal'),
-            takings=data.get('takings'),
-            expected_takings=data.get('expectedTakings'),
-            # Pass counts for notes and coins
-            note50_count=denominations.get('note50'),
-            note20_count=denominations.get('note20'),
-            note10_count=denominations.get('note10'),
-            note5_count=denominations.get('note5'),
-            coin200_count=denominations.get('coin200'),
-            coin100_count=denominations.get('coin100'),
-            coin50_count=denominations.get('coin50'),
-            coin20_count=denominations.get('coin20'),
-            coin10_count=denominations.get('coin10'),
-            coin5_count=denominations.get('coin5'),
-            coin2_count=denominations.get('coin2'),
-            coin1_count=denominations.get('coin1'),
-            # Pass counts for float
-            float_note20_count=floats.get('floatNote20'),
-            float_note10_count=floats.get('floatNote10'),
-            float_note5_count=floats.get('floatNote5'),
-            float_coin200_count=floats.get('floatCoin200'),
-            float_coin100_count=floats.get('floatCoin100'),
-            float_coin50_count=floats.get('floatCoin50'),
-            float_coin20_count=floats.get('floatCoin20'),
-            float_coin10_count=floats.get('floatCoin10'),
-            float_coin5_count=floats.get('floatCoin5'),
-            float_coin2_count=floats.get('floatCoin2'),
-            float_coin1_count=floats.get('floatCoin1')
-        )
-        db.session.add(new_record)
-        db.session.commit()
-        return jsonify({'message': 'Record saved successfully!', 'record': new_record.to_dict()}), 201
+        return jsonify({'summary': summary}), 200
         
     except Exception as e:
-        db.session.rollback()
-        logging.error(f"Failed to archive record: {e}")
-        return jsonify({'error': 'Failed to archive record'}), 500
+        logging.error(f"Failed to generate summary: {e}")
+        return jsonify({'error': 'Failed to generate summary'}), 500
 
 @app.route('/')
 def index():
     """Main page for the till counter application."""
     return render_template('index.html')
 
-# Create database tables - handle connection errors gracefully
 with app.app_context():
     try:
-        # Test database connection and create tables
         db.create_all()
         logging.info("Database connection successful and tables created")
     except Exception as e:
