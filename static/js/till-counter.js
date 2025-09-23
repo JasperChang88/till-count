@@ -386,7 +386,7 @@ class TillCounter {
         }, 2000);
     }
 
-    /**
+       /**
      * Update denomination breakdown showing what to remove vs keep
      */
     updateBreakdown() {
@@ -434,19 +434,13 @@ class TillCounter {
 
             if (removeQuantity > 0) {
                 const removeValue = removeQuantity * denom.value;
-                removeHTML += `<div class="d-flex justify-content-between border-bottom py-1">
-                    <span>${denom.label}:</span>
-                    <span><strong>${removeQuantity} × ${this.formatDenomination(denom.value)} = £${removeValue.toFixed(2)}</strong></span>
-                </div>`;
+                removeHTML += `<p class="mb-1"><span>${denom.label}:</span> <span class="float-end"><strong>${removeQuantity} × ${this.formatDenomination(denom.value)} = £${removeValue.toFixed(2)}</strong></span></p>`;
                 hasRemovalItems = true;
             }
 
             if (floatQuantity > 0) {
                 const floatValue = floatQuantity * denom.value;
-                leaveHTML += `<div class="d-flex justify-content-between border-bottom py-1">
-                    <span>${denom.label}:</span>
-                    <span><strong>${floatQuantity} × ${this.formatDenomination(denom.value)} = £${floatValue.toFixed(2)}</strong></span>
-                </div>`;
+                leaveHTML += `<p class="mb-1"><span>${denom.label}:</span> <span class="float-end"><strong>${floatQuantity} × ${this.formatDenomination(denom.value)} = £${floatValue.toFixed(2)}</strong></span></p>`;
                 hasFloatItems = true;
             }
         });
@@ -469,7 +463,7 @@ class TillCounter {
             leaveBreakdown.innerHTML = '<div class="text-muted fst-italic">No float set</div>';
         }
     }
-
+    
     /**
      * Format denomination value for display
      */
