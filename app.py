@@ -129,12 +129,10 @@ def save_record():
 
         if record_date_str:
             record_date = datetime.strptime(record_date_str, '%Y-%m-%d').date()
-            existing_record = DailyTillRecord.query.filter_by(date=record_date).first()
-            if existing_record:
-                return jsonify({'error': f'Record for {record_date} already exists. Cannot edit previous data.'}), 409
         else:
             record_date = date.today()
-            existing_record = DailyTillRecord.query.filter_by(date=record_date).first()
+
+        existing_record = DailyTillRecord.query.filter_by(date=record_date).first()
 
         denominations = data.get('denominations')
         floats = data.get('floats')
