@@ -409,6 +409,24 @@
                             </div>
                         </div>
                         
+                        <!-- Gemini API Summary Button -->
+                        <div class="row mt-3 mb-4">
+                            <div class="col-12 text-center">
+                                <button type="button" class="btn btn-primary" id="generateSummaryBtn">
+                                    <i class="bi bi-robot me-2"></i>
+                                    Generate Summary
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Summary Output -->
+                        <div id="summaryOutput" class="alert alert-secondary mt-3 d-none">
+                            <div class="spinner-border spinner-border-sm me-2 d-none" role="status" id="summarySpinner">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span id="summaryText"></span>
+                        </div>
+                        
                         <!-- Denomination Breakdown -->
                         <div class="row g-3 mb-3" id="breakdownSection" style="display: none;">
                             <div class="col-12">
@@ -493,145 +511,28 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <ul class="nav nav-tabs" id="historyTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="view-tab" data-bs-toggle="tab" data-bs-target="#view-pane" type="button" role="tab" aria-controls="view-pane" aria-selected="true">View History</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="add-tab" data-bs-toggle="tab" data-bs-target="#add-pane" type="button" role="tab" aria-controls="add-pane" aria-selected="false">Add Record</button>
-                        </li>
-                    </ul>
-                    <div class="tab-content" id="historyTabContent">
-                        <!-- View History Pane -->
-                        <div class="tab-pane fade show active" id="view-pane" role="tabpanel" aria-labelledby="view-tab" tabindex="0">
-                            <div id="historyLoading" class="text-center py-3" style="display: none;">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <p class="mt-2">Loading historical records...</p>
-                            </div>
-                            <div id="historyContent">
-                                <div id="historyList" class="table-responsive mt-3">
-                                    <table class="table table-striped table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Takings</th>
-                                                <th>Expected</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="historyTableBody">
-                                            <!-- Historical records will be populated here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                    <div id="historyLoading" class="text-center py-3" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
                         </div>
-                        <!-- Add Record Pane -->
-                        <div class="tab-pane fade" id="add-pane" role="tabpanel" aria-labelledby="add-tab" tabindex="0">
-                            <div class="alert alert-info mt-3" role="alert">
-                                <i class="bi bi-info-circle me-2"></i>
-                                This form is for adding a record for a past day. It will **not** allow you to edit a record if one already exists for that date.
-                            </div>
-                            <form id="addRecordForm">
-                                <div class="mb-3">
-                                    <label for="addRecordDate" class="form-label">Date</label>
-                                    <input type="date" class="form-control" id="addRecordDate" required>
-                                </div>
-                                <div class="row g-3">
-                                    <div class="col-6 col-md-3">
-                                        <label for="addNote50" class="form-label">£50 Notes</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">£50 ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addNote50" data-value="50" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-3">
-                                        <label for="addNote20" class="form-label">£20 Notes</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">£20 ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addNote20" data-value="20" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-3">
-                                        <label for="addNote10" class="form-label">£10 Notes</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">£10 ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addNote10" data-value="10" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-3">
-                                        <label for="addNote5" class="form-label">£5 Notes</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">£5 ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addNote5" data-value="5" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-2">
-                                        <label for="addCoin200" class="form-label">£2 Coins</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">£2 ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addCoin200" data-value="2" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-2">
-                                        <label for="addCoin100" class="form-label">£1 Coins</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">£1 ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addCoin100" data-value="1" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-2">
-                                        <label for="addCoin50" class="form-label">50p Coins</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">50p ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addCoin50" data-value="0.5" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-2">
-                                        <label for="addCoin20" class="form-label">20p Coins</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">20p ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addCoin20" data-value="0.2" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-2">
-                                        <label for="addCoin10" class="form-label">10p Coins</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">10p ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addCoin10" data-value="0.1" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-2">
-                                        <label for="addCoin5" class="form-label">5p Coins</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">5p ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addCoin5" data-value="0.05" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-2">
-                                        <label for="addCoin2" class="form-label">2p Coins</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">2p ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addCoin2" data-value="0.02" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-2">
-                                        <label for="addCoin1" class="form-label">1p Coins</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">1p ×</span>
-                                            <input type="number" class="form-control add-denomination-input" id="addCoin1" data-value="0.01" min="0" placeholder="0">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="text-end mt-4">
-                                    <button type="submit" class="btn btn-primary" id="addRecordBtn">
-                                        <i class="bi bi-save me-2"></i>
-                                        Save Record
-                                    </button>
-                                </div>
-                            </form>
+                        <p class="mt-2">Loading historical records...</p>
+                    </div>
+                    <div id="historyContent">
+                        <h6>Recent Records:</h6>
+                        <div id="historyList" class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Takings</th>
+                                        <th>Expected</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                    <!-- Historical records will be populated here -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
