@@ -79,14 +79,14 @@ class TillCounter {
     calculateTotalCash() {
         let total = 0;
         const inputs = document.querySelectorAll('.denomination-input');
-
+        
         inputs.forEach(input => {
             const value = parseFloat(input.dataset.value);
             const quantity = parseInt(input.value) || 0;
-            total += value * quantity;
+            total = total + value * quantity;
         });
-
-        return Math.round(total * 100) / 100;
+        
+        return Math.round(total * 100) / 100; // Round to 2 decimal places
     }
 
     /**
@@ -95,14 +95,14 @@ class TillCounter {
     calculateFloatTotal() {
         let total = 0;
         const inputs = document.querySelectorAll('.float-input');
-
+        
         inputs.forEach(input => {
             const value = parseFloat(input.dataset.value);
             const quantity = parseInt(input.value) || 0;
-            total += value * quantity;
+            total = total + value * quantity;
         });
-
-        return Math.round(total * 100) / 100;
+        
+        return Math.round(total * 100) / 100; // Round to 2 decimal places
     }
 
     /**
@@ -386,7 +386,7 @@ class TillCounter {
         }, 2000);
     }
 
-       /**
+    /**
      * Update denomination breakdown showing what to remove vs keep
      */
     updateBreakdown() {
@@ -433,13 +433,13 @@ class TillCounter {
             const removeQuantity = Math.max(0, totalQuantity - floatQuantity);
 
             if (removeQuantity > 0) {
-                const removeValue = removeQuantity * denom.value;
+                const removeValue = Math.round(removeQuantity * denom.value * 100) / 100; // Fixes rounding
                 removeHTML += `<p class="mb-1"><span>${denom.label}:</span> <span class="float-end"><strong>${removeQuantity} × ${this.formatDenomination(denom.value)} = £${removeValue.toFixed(2)}</strong></span></p>`;
                 hasRemovalItems = true;
             }
 
             if (floatQuantity > 0) {
-                const floatValue = floatQuantity * denom.value;
+                const floatValue = Math.round(floatQuantity * denom.value * 100) / 100; // Fixes rounding
                 leaveHTML += `<p class="mb-1"><span>${denom.label}:</span> <span class="float-end"><strong>${floatQuantity} × ${this.formatDenomination(denom.value)} = £${floatValue.toFixed(2)}</strong></span></p>`;
                 hasFloatItems = true;
             }
